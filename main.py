@@ -101,4 +101,45 @@ class RiotClient:
         except (error.URLError, TimeoutError, json.JSONDecodeError, ValueError) as exc:
             raise RiotAPIError(f"Request failed: {exc}") from exc
 
+    def _request_optional_json(self, url, extra_headers=None, timeout=15):
+            try:
+                return self._request_json(url, extra_headers=extra_headers, timeout=timeout)
+            except RiotAPIError:
+                return None
+    def get_summoner_by_name(self, platform_region, summoner_name):
+        encoded_name = parse.quote(summoner_name.strip(), safe="")
+        url = f"{self._base_url(platform_region)}/lol/summoner/v4/summoners/by-name/{encoded_name}"
+        return self._request_json(url)
+
+    def get_ranked_entries(self, platform_region, encrypted_summoner_id):
+        url = f"{self._base_url(platform_region)}/lol/league/v4/entries/by-summoner/{encrypted_summoner_id}"
+        return self._request_json(url)
+
+    def get_champion_masteries(self, platform_region, encrypted_summoner_id, count=5):
+        url = (
+            f"{self._base_url(platform_region)}/lol/champion-mastery/v4/champion-masteries/"
+            f"by-summoner/{encrypted_summoner_id}?count={count}"
+        )
+        return self._request_json(url)
+
+    def get_match_ids(self, platform_region, puuid, count=10):
+        url = (
+            f"{self._regional_base_url(platform_region)}/lol/match/v5/matches/by-puuid/"
+            f"{puuid}/ids?start=0&count={count}"
+        )
+        return self._request_json(url)
+
+    def get_match_details(self, platform_region, match_id):
+        url = f"{self._regional_base_url(platform_region)}/lol/match/v5/matches/{match_id}"
+        return self._request_json(url)
+
+    def get_live_client_data(self):
+        url = "https://127.0.0.1:2999/liveclientdata/allgamedata"
+        req = request.Request(url, headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"})
+        try:
+            with request.urlopen(req, context=self.ssl_context, timeout=3) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            return None
+
     
