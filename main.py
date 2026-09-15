@@ -142,4 +142,30 @@ class RiotClient:
         except Exception:
             return None
 
+    def get_champion_map(self):
+            if self._champion_map is not None:
+                return self._champion_map
     
+            versions_url = "https://ddragon.leagueoflegends.com/api/versions.json"
+            versions = self._request_optional_json(versions_url, timeout=10)
+            if not versions:
+                self._champion_map = {}
+                return self._champion_map
+    
+            latest_version = versions[0]
+            self._latest_version = latest_version
+            champ_url = f"https://ddragon.leagueoflegends.com/cdn/{latest_version}/data/en_US/champion.json"
+            data = self._request_optional_json(champ_url, timeout=15)
+    
+            champ_map = {}
+            if data:
+                for champion in data.get("data", {}).values():
+                    try:
+                        champ_map[int(champion.get("key", "0"))] = champion.get("name", champion.get("id", "Unknown"))
+                    except ValueError:
+                        continue
+    
+            self._champion_map = champ_map
+            return champ_map
+    
+        
